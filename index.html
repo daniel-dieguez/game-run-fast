@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carrera de Caballos · Quiz por grupos</title>
+<style>
+  :root{
+    --bg:#0d2418; --bg2:#14402a; --card:#fffdf6; --ink:#1d2a22; --muted:#6b7a70;
+    --gold:#f2c14e; --gold-d:#d9a22b; --green:#2f9e57; --red:#d64545; --line:#e5dfcf;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    color:var(--ink);
+    background:radial-gradient(1200px 600px at 20% -10%,var(--bg2),var(--bg));
+    min-height:100vh;
+  }
+  .hidden{display:none !important}
+  header{
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 22px; background:rgba(0,0,0,.28); border-bottom:2px solid rgba(242,193,78,.45);
+  }
+  header h1{margin:0; font-size:1.45rem; color:var(--gold); letter-spacing:.3px}
+  nav{display:flex; gap:8px; flex-wrap:wrap}
+  .tab{
+    border:0; cursor:pointer; padding:10px 18px; border-radius:999px; font-weight:700; font-size:.95rem;
+    background:rgba(255,255,255,.1); color:#e9f3ec; transition:.15s;
+  }
+  .tab:hover{background:rgba(255,255,255,.2)}
+  .tab.active{background:var(--gold); color:#2a2000}
+  main{max-width:1400px; margin:0 auto; padding:20px}
+  .card{
+    background:var(--card); border-radius:18px; padding:20px 22px; margin-bottom:18px;
+    box-shadow:0 8px 24px rgba(0,0,0,.25);
+  }
+  .card h2,.card h3{margin:0 0 12px}
+  .card h2{font-size:1.25rem}
+  .card h3{font-size:1.05rem}
+  .muted{color:var(--muted); font-size:.92rem}
+  label.f{display:block; font-weight:600; margin:10px 0 4px}
+  input[type=text],input[type=number],textarea{
+    width:100%; padding:10px 12px; border:2px solid var(--line); border-radius:10px;
+    font:inherit; background:#fff; color:var(--ink);
+  }
+  input:focus,textarea:focus{outline:none; border-color:var(--gold-d)}
+  textarea{resize:vertical; min-height:70px}
+  .btn{
+    border:0; cursor:pointer; padding:10px 18px; border-radius:12px; font-weight:700; font-size:.95rem;
+    background:#ebe6d4; color:var(--ink); transition:.15s;
+  }
+  .btn:hover{filter:brightness(.95); transform:translateY(-1px)}
+  .btn.primary{background:var(--gold); color:#2a2000}
+  .btn.danger{background:#f8d9d9; color:#8a1f1f}
+  .btn.sm{padding:6px 12px; font-size:.82rem}
+  .btn.big{font-size:1.1rem; padding:13px 26px}
+  .btn:disabled{opacity:.5; cursor:not-allowed; transform:none}
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .msg{margin-top:10px; font-weight:600; min-height:1.2em}
+  .msg.err{color:var(--red)} .msg.ok{color:var(--green)}
+
+  /* Config */
+  .group-row{display:flex; align-items:center; gap:10px; margin:8px 0}
+  .gnum{width:30px; height:30px; border-radius:50%; background:#2a3b30; color:#fff; display:grid; place-items:center; font-weight:700; flex:none}
+  input[type=color]{width:50px; height:42px; padding:2px; border:2px solid var(--line); border-radius:10px; background:#fff; cursor:pointer; flex:none}
+  .pill{display:inline-block; padding:4px 12px; border-radius:999px; font-weight:700; font-size:.85rem}
+  .pill.ok{background:#d5f1de; color:#14663a} .pill.bad{background:#fbdcdc; color:#8a1f1f}
+
+  /* Admin */
+  .optrow{display:flex; align-items:center; gap:10px; margin:6px 0}
+  .optrow input[type=radio]{width:20px; height:20px; accent-color:var(--green); flex:none}
+  .qlist{list-style:none; margin:0; padding:0; max-height:640px; overflow:auto}
+  .qitem{border:2px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:10px; background:#fff}
+  .qhead{display:flex; gap:10px; align-items:flex-start}
+  .qn{background:var(--gold); color:#2a2000; border-radius:8px; padding:2px 9px; font-weight:800; flex:none}
+  .qopts{list-style:none; margin:8px 0 8px 40px; padding:0; font-size:.93rem; color:#44524a}
+  .qopts li.right{color:#14663a; font-weight:700}
+  .qact{display:flex; gap:8px; margin-left:40px}
+
+  /* Carrera */
+  .race-grid{display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:18px; align-items:start}
+  @media(max-width:1100px){.race-grid{grid-template-columns:1fr}}
+  .track-card{background:#0f3323; border-radius:20px; padding:14px; box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  .race-controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:12px}
+  #raceStatus{color:#cfe8d8; font-weight:600}
+  #track{width:100%; height:auto; display:block; border-radius:18px}
+  .infield-t{font-size:56px; font-weight:800; fill:#fff; text-anchor:middle; paint-order:stroke; stroke:rgba(0,0,0,.25); stroke-width:6px}
+  .infield-s{font-size:28px; fill:#e9f6ee; text-anchor:middle; font-weight:600}
+  #podium{list-style:none; margin:0; padding:0}
+  #podium li{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; background:#fff; border:2px solid var(--line); margin-bottom:8px; font-size:1rem}
+  #podium li.done{border-color:var(--gold-d); background:#fff8e1}
+  #podium .medal{font-size:1.6rem}
+  .dot{width:16px; height:16px; border-radius:50%; flex:none; border:2px solid rgba(0,0,0,.25); display:inline-block}
+  .team{padding:8px 0; border-bottom:1px dashed var(--line)}
+  .team:last-child{border:0}
+  .team .top{display:flex; align-items:center; gap:8px}
+  .team .tag{margin-left:auto; font-weight:700; font-size:.85rem}
+  .bar{height:10px; background:#ece7d6; border-radius:999px; overflow:hidden; margin:6px 0 2px}
+  .bar i{display:block; height:100%; border-radius:999px; transition:width .5s}
+  #log{list-style:none; margin:0; padding:0; max-height:260px; overflow:auto; font-size:.9rem}
+  #log li{padding:6px 0; border-bottom:1px dashed var(--line)}
+  #log li.ok{color:#14663a} #log li.bad{color:#8a1f1f} #log li.win{font-weight:800; color:#7a5a00}
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(5,15,10,.72); z-index:50;
+    display:flex; align-items:center; justify-content:center; padding:16px; overflow:auto;
+  }
+  .modal{
+    background:var(--card); border-radius:24px; width:min(780px,96vw); padding:28px 30px;
+    box-shadow:0 20px 60px rgba(0,0,0,.5); border-top:12px solid var(--c,var(--gold));
+    animation:pop .25s ease; position:relative;
+  }
+  .close-x{
+    position:absolute; top:10px; right:12px; width:38px; height:38px; border:0; border-radius:50%;
+    background:#ebe6d4; color:#444; font-size:1.1rem; font-weight:800; cursor:pointer; transition:.15s;
+  }
+  .close-x:hover{background:#f8d9d9; color:#8a1f1f}
+  .modal .turn{padding-right:46px}
+  @keyframes pop{from{transform:scale(.92); opacity:0}to{transform:scale(1); opacity:1}}
+  .turn{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px}
+  .chip{padding:8px 16px; border-radius:999px; font-weight:800; font-size:1.05rem; background:var(--c); color:var(--t)}
+  .qcount{font-weight:700; color:var(--muted)}
+  .qtext{font-size:1.7rem; line-height:1.25; margin:10px 0 20px}
+  .options{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  @media(max-width:640px){.options{grid-template-columns:1fr}}
+  .opt{
+    display:flex; align-items:center; gap:12px; text-align:left; cursor:pointer;
+    border:3px solid var(--line); background:#fff; border-radius:16px; padding:14px 16px;
+    font:inherit; font-size:1.2rem; font-weight:600; color:var(--ink); transition:.12s;
+  }
+  .opt:hover:not(:disabled){border-color:var(--gold-d); transform:translateY(-2px)}
+  .opt .letter{width:36px; height:36px; border-radius:10px; background:#2a3b30; color:#fff; display:grid; place-items:center; font-weight:800; flex:none}
+  .opt:disabled{cursor:default}
+  .opt.sel{border-color:#555; background:#f0efe8}
+  .opt.correct{border-color:var(--green); background:#dff5e6}
+  .opt.wrong{border-color:var(--red); background:#fbe0e0}
+  .opt.dim{opacity:.45}
+  .center{text-align:center}
+  .medal-big{font-size:5rem; line-height:1}
+  .win h2{font-size:1.9rem; margin:8px 0}
+  .win p{font-size:1.15rem; margin:6px 0 18px}
+  .podium-vis{display:flex; align-items:flex-end; justify-content:center; gap:10px; margin:18px 0}
+  .step{width:150px; border-radius:14px 14px 0 0; text-align:center; padding:10px 6px; font-weight:800; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px}
+  .step .m{font-size:2.2rem}
+  .step .nm{font-size:1.05rem; word-break:break-word}
+  .step small{font-weight:600; opacity:.9}
+  .others{font-size:.95rem; color:var(--muted); text-align:center; margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏇 Carrera de Caballos · Quiz</h1>
+  <nav>
+    <button class="tab active" data-tab="setup">1 · Configuración</button>
+    <button class="tab" data-tab="admin">2 · Admin (preguntas)</button>
+    <button class="tab" data-tab="race">3 · Carrera</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ============ CONFIGURACIÓN ============ -->
+  <section id="tab-setup" class="tab-panel">
+    <div class="grid2">
+      <div class="card">
+        <h2>👥 Grupos participantes</h2>
+        <p class="muted">Cada grupo tendrá su caballo. El color del cuello (la “ropa”) lo distingue.</p>
+        <label class="f" for="groupCount">Cantidad de grupos (2 a 8)</label>
+        <input type="number" id="groupCount" min="2" max="8" value="2" style="max-width:140px">
+        <div id="groupList" style="margin-top:10px"></div>
+      </div>
+
+      <div class="card">
+        <h2>⚙️ Reglas de la carrera</h2>
+        <label class="f" for="nQ">Preguntas que se usarán en la carrera</label>
+        <input type="number" id="nQ" min="5" value="18">
+        <label class="f" for="goal">Aciertos necesarios para llegar a la meta</label>
+        <input type="number" id="goal" min="1" value="10">
+        <p class="muted" id="ruleInfo"></p>
+        <p>Preguntas en el banco: <span id="qBadge" class="pill bad">0</span></p>
+        <div class="row">
+          <button class="btn primary big" id="btnStart">🏁 Preparar carrera</button>
+          <button class="btn" data-goto="admin">Ir a preguntas</button>
+        </div>
+        <div id="setupMsg" class="msg"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>¿Cómo funciona?</h3>
+      <p class="muted" style="margin:0">
+        Cada pregunta aparece en una ventana al centro: primero responde el equipo 1, luego el 2, y así sucesivamente.
+        Cada acierto avanza el caballo (100 ÷ aciertos de meta)&nbsp;% de la pista. Quien llega a la meta primero gana el 1.er lugar,
+        la carrera sigue para definir el 2.º y el 3.º (si hay solo 2 grupos, el podio es de 2).
+        Si se acaban las preguntas, las posiciones restantes se definen por aciertos (y por rapidez si hay empate).
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ ADMIN ============ -->
+  <section id="tab-admin" class="tab-panel hidden">
+    <div class="grid2">
+      <div class="card">
+        <h2 id="formTitle">➕ Nueva pregunta</h2>
+        <label class="f" for="qText">Pregunta</label>
+        <textarea id="qText" placeholder="Escribe la pregunta..."></textarea>
+        <label class="f">Opciones (marca la correcta)</label>
+        <label class="optrow"><input type="radio" name="qCorrect" value="0"><input type="text" class="qopt" placeholder="Opción A"></label>
+        <label class="optrow"><input type="radio" name="qCorrect" value="1"><input type="text" class="qopt" placeholder="Opción B"></label>
+        <label class="optrow"><input type="radio" name="qCorrect" value="2"><input type="text" class="qopt" placeholder="Opción C (opcional)"></label>
+        <label class="optrow"><input type="radio" name="qCorrect" value="3"><input type="text" class="qopt" placeholder="Opción D (opcional)"></label>
+        <div class="row" style="margin-top:12px">
+          <button class="btn primary" id="qSave">Guardar pregunta</button>
+          <button class="btn hidden" id="qCancel">Cancelar edición</button>
+        </div>
+        <div id="adminMsg" class="msg"></div>
+        <hr style="border:0; border-top:1px solid var(--line); margin:16px 0">
+        <div class="row">
+          <button class="btn sm" id="btnExport">⬇ Exportar JSON</button>
+          <button class="btn sm" id="btnImport">⬆ Importar JSON</button>
+          <button class="btn sm" id="btnSample">Restaurar preguntas base</button>
+          <input type="file" id="fileImport" accept=".json,application/json" class="hidden">
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📋 Banco de preguntas <span id="qBadge2" class="pill bad" style="margin-left:6px">0</span></h2>
+        <p class="muted">Mínimo 5 preguntas para poder iniciar la carrera. Los cambios se guardan automáticamente en este navegador.</p>
+        <div class="row" style="margin-bottom:12px"><button class="btn danger" id="btnClear">🗑 Borrar todas las preguntas</button></div>
+        <ul class="qlist" id="qList"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CARRERA ============ -->
+  <section id="tab-race" class="tab-panel hidden">
+    <div id="raceEmpty" class="card">
+      <h2>Aún no hay carrera</h2>
+      <p class="muted">Ve a “Configuración” y pulsa <b>Preparar carrera</b>.</p>
+    </div>
+    <div id="raceWrap" class="race-grid hidden">
+      <div class="track-card">
+        <div class="race-controls">
+          <button class="btn primary big" id="btnRun">▶ Iniciar carrera</button>
+          <button class="btn" id="btnReset">↺ Reiniciar</button>
+          <button class="btn" id="btnFull">⛶ Pantalla completa</button>
+          <span id="raceStatus"></span>
+        </div>
+        <svg id="track" viewBox="0 0 1100 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pista de carrera"></svg>
+      </div>
+      <aside>
+        <div class="card"><h3>🏆 Podio</h3><ol id="podium"></ol></div>
+        <div class="card"><h3>📊 Marcador</h3><div id="board"></div></div>
+        <div class="card"><h3>📝 Registro</h3><ul id="log"></ul></div>
+      </aside>
+    </div>
+  </section>
+
+</main>
+
+<div id="overlay" class="overlay hidden"><div class="modal" id="modalBox"></div></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= Constantes y utilidades ================= */
+const MIN_Q = 5, MIN_G = 2, MAX_G = 8;
+const COLORS = ['#e63946','#1d6fd8','#2fb344','#f4a300','#8e44ad','#00a8a8','#ff6fa5','#6b4f3a'];
+const KQ = 'hr_questions_v2', KC = 'hr_config_v1';
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const clone = o => JSON.parse(JSON.stringify(o));
+const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const textOn = hex => {
+  const h = hex.replace('#',''); const r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+  return (0.299*r + 0.587*g + 0.114*b) > 150 ? '#1a1a1a' : '#ffffff';
+};
+const ord = p => p === 1 ? '1.er' : p === 3 ? '3.er' : p + '.º';
+const MEDALS = ['🥇','🥈','🥉'];
+
+/* ================= Preguntas base (Investigación de Operaciones, 18) ================= */
+const SAMPLE = [
+  ["¿Para qué sirve el método de la ruta crítica (CPM)?", ["Para calcular el precio de los productos.", "Para planificar las actividades y determinar la duración de un proyecto.", "Para controlar las ventas de una empresa."], 1],
+  ["¿Qué es la ruta crítica?", ["El camino de mayor duración que determina el tiempo mínimo del proyecto.", "El camino con menos actividades.", "El conjunto de actividades que pueden eliminarse."], 0],
+  ["En el CPM básico, ¿cuánta holgura total tiene una actividad crítica?", ["Dos días.", "Un día.", "Cero."], 2],
+  ["¿Qué representa la holgura total de una actividad?", ["El costo de realizarla.", "El tiempo que puede retrasarse sin retrasar la terminación del proyecto.", "La cantidad de personas que necesita."], 1],
+  ["Si una actividad inicia en el día 3 y dura 5 días, ¿cuál es su final temprano?", ["Día 8.", "Día 15.", "Día 2."], 0],
+  ["En la representación Actividad en Nodo (AON), ¿dónde se representan las actividades?", ["En las flechas.", "En una lista de precios.", "En los nodos."], 2],
+  ["¿Qué caracteriza a un modelo de inventario determinístico?", ["La demanda siempre es desconocida.", "Los datos relevantes, como la demanda, se consideran conocidos.", "Los pedidos se hacen al azar."], 1],
+  ["¿Qué busca determinar el modelo EOQ?", ["La cantidad de pedido que minimiza los costos de ordenar y mantener inventario.", "El precio máximo de venta.", "La cantidad de empleados del almacén."], 0],
+  ["¿Cuál es un supuesto del modelo EOQ clásico?", ["La demanda cambia de forma impredecible.", "Siempre se permiten faltantes.", "La demanda es conocida y constante."], 2],
+  ["Si aumenta el tamaño de cada pedido y la demanda anual se mantiene, ¿qué ocurre con la cantidad de pedidos al año?", ["Aumenta.", "Disminuye.", "No cambia."], 1],
+  ["¿Qué indica el punto de reorden?", ["El nivel de inventario en el que debe realizarse un nuevo pedido.", "El precio al que se vende un producto.", "El número de clientes de la empresa."], 0],
+  ["Una empresa consume 10 unidades diarias y el proveedor tarda 4 días en entregar. Sin stock de seguridad, ¿cuál es el punto de reorden?", ["14 unidades.", "6 unidades.", "40 unidades."], 2],
+  ["¿Qué caracteriza a los modelos de inventarios estocásticos?", ["Todos los datos se conocen con certeza.", "Consideran incertidumbre en la demanda o en el tiempo de entrega.", "No utilizan probabilidades."], 1],
+  ["¿Para qué sirve el stock de seguridad?", ["Para reducir el riesgo de faltantes ante variaciones inesperadas.", "Para aumentar el precio de venta.", "Para sustituir todos los pedidos."], 0],
+  ["¿Cuándo se realiza un pedido en el sistema de revisión continua estudiado?", ["Únicamente al terminar el año.", "Cada lunes, sin revisar las existencias.", "Cuando el inventario alcanza el punto de reorden."], 2],
+  ["¿Cómo se revisa el inventario en un sistema de revisión periódica?", ["Solo cuando un cliente reclama.", "En intervalos fijos de tiempo.", "Una sola vez durante toda la operación."], 1],
+  ["Si un cliente solicita 100 unidades y se entregan inmediatamente 95 desde el inventario disponible, ¿cuál es el fill rate por unidades?", ["95 %.", "5 %.", "100 %."], 0],
+  ["¿Cuál de estos casos corresponde al modelo de un solo período o vendedor de periódicos?", ["Guardar tornillos durante varios años.", "Comprar muebles para una oficina.", "Decidir cuántos periódicos comprar para vender ese día."], 2]
+].map(([q, options, correct]) => ({ q, options, correct }));
+
+/* ================= Estado ================= */
+let questions = load(KQ, null);
+if (!Array.isArray(questions) || !questions.length) questions = clone(SAMPLE);
+
+let cfg = load(KC, null);
+if (!cfg || !Array.isArray(cfg.groups) || cfg.groups.length < MIN_G) {
+  cfg = { groups: [0,1].map(i => ({ name: 'Equipo ' + (i+1), color: COLORS[i] })), nQ: 18, goal: 10 };
+}
+cfg.nQ = Math.max(1, Math.min(Math.round(cfg.nQ) || 18, questions.length));
+cfg.goal = Math.max(1, Math.min(Math.round(cfg.goal) || 10, cfg.nQ));
+let race = null;   // estado de la carrera actual
+let runId = 0;     // para cancelar una carrera en curso
+let editIdx = -1;
+
+/* ================= Pestañas ================= */
+function showTab(name){
+  $$('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + name));
+  $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+}
+$$('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+$$('[data-goto]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.goto)));
+
+/* ================= CONFIGURACIÓN ================= */
+function persistCfg(){ save(KC, cfg); }
+
+function renderSetup(){
+  $('#groupCount').value = cfg.groups.length;
+  $('#nQ').value = cfg.nQ;
+  $('#goal').value = cfg.goal;
+  const box = $('#groupList'); box.innerHTML = '';
+  cfg.groups.forEach((g, i) => {
+    const row = document.createElement('div');
+    row.className = 'group-row';
+    row.innerHTML = `<span class="gnum">${i+1}</span>
+      <input type="color" class="gcolor" data-i="${i}" value="${g.color}" title="Color del cuello">
+      <input type="text" class="gname" data-i="${i}" maxlength="24" value="${esc(g.name)}" placeholder="Nombre del grupo">`;
+    box.appendChild(row);
+  });
+  updateSetupInfo();
+}
+
+function updateSetupInfo(){
+  const nQ = +$('#nQ').value || 0, goal = +$('#goal').value || 0;
+  const pct = goal > 0 ? (100 / goal).toFixed(goal > 0 && 100 % goal === 0 ? 0 : 1) : '—';
+  $('#ruleInfo').textContent = `Cada acierto avanza ${pct}% de la pista. Con ${goal || '—'} aciertos se llega a la meta.`;
+  const ok = questions.length >= MIN_Q;
+  [$('#qBadge'), $('#qBadge2')].forEach(b => { b.textContent = `${questions.length} / ${MIN_Q} mín.`; b.className = 'pill ' + (ok ? 'ok' : 'bad'); });
+  if (nQ > questions.length) $('#nQ').title = 'Máximo: ' + questions.length;
+}
+
+$('#groupCount').addEventListener('change', () => {
+  let n = Math.round(+$('#groupCount').value) || MIN_G;
+  n = Math.max(MIN_G, Math.min(MAX_G, n));
+  while (cfg.groups.length < n) {
+    const used = cfg.groups.map(g => g.color.toLowerCase());
+    const color = COLORS.find(c => !used.includes(c)) || COLORS[cfg.groups.length % COLORS.length];
+    cfg.groups.push({ name: 'Equipo ' + (cfg.groups.length + 1), color });
+  }
+  cfg.groups.length = n;
+  persistCfg(); renderSetup();
+});
+$('#groupList').addEventListener('input', e => {
+  const i = +e.target.dataset.i;
+  if (e.target.classList.contains('gname')) cfg.groups[i].name = e.target.value;
+  if (e.target.classList.contains('gcolor')) cfg.groups[i].color = e.target.value;
+  persistCfg();
+});
+['#nQ', '#goal'].forEach(s => $(s).addEventListener('input', updateSetupInfo));
+
+$('#btnStart').addEventListener('click', () => {
+  const msg = $('#setupMsg'); msg.className = 'msg err';
+  const nQ = Math.round(+$('#nQ').value), goal = Math.round(+$('#goal').value);
+  const names = cfg.groups.map(g => g.name.trim());
+  if (questions.length < MIN_Q) { msg.textContent = `Necesitas al menos ${MIN_Q} preguntas (tienes ${questions.length}). Agrégalas en la pestaña Admin.`; return; }
+  if (names.some(n => !n)) { msg.textContent = 'Todos los grupos deben tener nombre.'; return; }
+  if (new Set(names.map(n => n.toLowerCase())).size !== names.length) { msg.textContent = 'Los nombres de los grupos deben ser distintos.'; return; }
+  if (new Set(cfg.groups.map(g => g.color.toLowerCase())).size !== cfg.groups.length) { msg.textContent = 'Cada grupo debe tener un color distinto.'; return; }
+  if (!nQ || nQ < MIN_Q || nQ > questions.length) { msg.textContent = `Las preguntas de la carrera deben ser entre ${MIN_Q} y ${questions.length}.`; return; }
+  if (!goal || goal < 1 || goal > nQ) { msg.textContent = `Los aciertos para la meta deben ser entre 1 y ${nQ}.`; return; }
+  cfg.nQ = nQ; cfg.goal = goal; cfg.groups.forEach(g => g.name = g.name.trim()); persistCfg();
+  msg.textContent = '';
+  showTab('race');
+  initRace();
+});
+
+/* ================= ADMIN ================= */
+function persistQ(){ save(KQ, questions); updateSetupInfo(); }
+
+function renderAdmin(){
+  $('#qList').innerHTML = questions.map((q, i) => `
+    <li class="qitem">
+      <div class="qhead"><span class="qn">${i+1}</span><b>${esc(q.q)}</b></div>
+      <ul class="qopts">${q.options.map((o, j) => o.trim() ? `<li class="${j === q.correct ? 'right' : ''}">${'ABCD'[j]}. ${esc(o)}${j === q.correct ? ' ✔' : ''}</li>` : '').join('')}</ul>
+      <div class="qact">
+        <button class="btn sm" data-edit="${i}">Editar</button>
+        <button class="btn sm danger" data-del="${i}">Eliminar</button>
+      </div>
+    </li>`).join('') || '<p class="muted">Aún no hay preguntas.</p>';
+  updateSetupInfo();
+}
+
+function clearForm(){
+  editIdx = -1;
+  $('#qText').value = '';
+  $$('.qopt').forEach(i => i.value = '');
+  $$('input[name=qCorrect]').forEach(r => r.checked = false);
+  $('#formTitle').textContent = '➕ Nueva pregunta';
+  $('#qSave').textContent = 'Guardar pregunta';
+  $('#qCancel').classList.add('hidden');
+}
+function adminMsg(text, ok){ const m = $('#adminMsg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'err'); }
+
+$('#qSave').addEventListener('click', () => {
+  const q = $('#qText').value.trim();
+  const opts = $$('.qopt').map(i => i.value.trim());
+  const c = $('input[name=qCorrect]:checked');
+  if (!q) return adminMsg('Escribe la pregunta.', false);
+  if (opts.filter(Boolean).length < 2) return adminMsg('Escribe al menos 2 opciones.', false);
+  if (!c) return adminMsg('Marca cuál es la respuesta correcta.', false);
+  if (!opts[+c.value]) return adminMsg('La opción marcada como correcta está vacía.', false);
+  const item = { q, options: opts, correct: +c.value };
+  if (editIdx >= 0) questions[editIdx] = item; else questions.push(item);
+  persistQ(); renderAdmin();
+  adminMsg(editIdx >= 0 ? 'Pregunta actualizada.' : 'Pregunta agregada.', true);
+  clearForm();
+});
+$('#qCancel').addEventListener('click', () => { clearForm(); adminMsg('', true); });
+
+$('#qList').addEventListener('click', e => {
+  const ed = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]');
+  if (ed) {
+    const i = +ed.dataset.edit, q = questions[i];
+    editIdx = i;
+    $('#qText').value = q.q;
+    $$('.qopt').forEach((inp, j) => inp.value = q.options[j] || '');
+    $$('input[name=qCorrect]').forEach(r => r.checked = (+r.value === q.correct));
+    $('#formTitle').textContent = `✏️ Editando pregunta ${i+1}`;
+    $('#qSave').textContent = 'Guardar cambios';
+    $('#qCancel').classList.remove('hidden');
+    $('#qText').focus(); window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  if (del) {
+    const i = +del.dataset.del;
+    if (confirm('¿Eliminar la pregunta ' + (i+1) + '?')) {
+      questions.splice(i, 1); if (editIdx === i) clearForm();
+      persistQ(); renderAdmin();
+    }
+  }
+});
+
+$('#btnSample').addEventListener('click', () => {
+  if (confirm('Esto reemplaza TODAS las preguntas por las 18 preguntas base. ¿Continuar?')) { questions = clone(SAMPLE); persistQ(); renderAdmin(); clearForm(); adminMsg('Preguntas base restauradas.', true); }
+});
+$('#btnClear').addEventListener('click', () => {
+  if (questions.length && confirm(`¿Borrar TODAS las preguntas (${questions.length})? Esta acción no se puede deshacer.`)) { questions = []; persistQ(); renderAdmin(); clearForm(); adminMsg(`Banco vacío. Agrega al menos ${MIN_Q} preguntas.`, true); }
+});
+$('#btnExport').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(questions, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'preguntas-carrera.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+$('#btnImport').addEventListener('click', () => $('#fileImport').click());
+$('#fileImport').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (!Array.isArray(data)) throw new Error();
+    const clean = data.map(d => {
+      const opts = Array.isArray(d.options) ? d.options.map(o => String(o ?? '').trim()).slice(0, 4) : [];
+      while (opts.length < 4) opts.push('');
+      const correct = Number.isInteger(d.correct) ? d.correct : -1;
+      if (typeof d.q !== 'string' || !d.q.trim() || opts.filter(Boolean).length < 2 || correct < 0 || correct > 3 || !opts[correct]) throw new Error();
+      return { q: d.q.trim(), options: opts, correct };
+    });
+    if (!clean.length) throw new Error();
+    if (!confirm(`Se importarán ${clean.length} preguntas y reemplazarán las actuales. ¿Continuar?`)) return;
+    questions = clean; persistQ(); renderAdmin(); adminMsg(`Importadas ${clean.length} preguntas.`, true);
+  } catch { adminMsg('Archivo inválido. Formato esperado: [{"q":"...","options":["A","B","C","D"],"correct":0}]', false); }
+});
+
+/* ================= MODAL ================= */
+const overlay = $('#overlay'), box = $('#modalBox');
+function openModal(html, color){
+  box.style.setProperty('--c', color || 'var(--gold)');
+  box.innerHTML = html; overlay.classList.remove('hidden');
+}
+function closeModal(){ overlay.classList.add('hidden'); box.innerHTML = ''; }
+
+function askQuestion(q, team, idx, total){
+  return new Promise(resolve => {
+    const opts = shuffle(q.options.map((t, i) => ({ t, i })).filter(o => o.t.trim()));
+    const html = `
+      <button class="close-x" id="btnPause" title="Pausar" aria-label="Pausar">✕</button>
+      <div class="turn">
+        <span class="chip" style="--c:${team.color};--t:${textOn(team.color)}">🐴 Turno: ${esc(team.name)}</span>
+        <span class="qcount">Pregunta ${idx + 1} de ${total}</span>
+      </div>
+      <h2 class="qtext">${esc(q.q)}</h2>
+      <div class="options">
+        ${opts.map((o, k) => `<button class="opt" data-i="${o.i}"><span class="letter">${'ABCD'[k]}</span><span>${esc(o.t)}</span></button>`).join('')}
+      </div>`;
+    let acc = 0, tStart = 0, answered = false;
+
+    function show(){
+      openModal(html, team.color);
+      tStart = performance.now();
+      $$('.opt', box).forEach(btn => btn.addEventListener('click', async () => {
+        if (answered) return;
+        answered = true;
+        const ms = acc + performance.now() - tStart;
+        const chosen = +btn.dataset.i, correct = chosen === q.correct;
+        $('#btnPause', box)?.remove();
+        $$('.opt', box).forEach(b => { b.disabled = true; if (b !== btn) b.classList.add('dim'); });
+        btn.classList.add('sel');
+        await sleep(450);
+        btn.classList.remove('sel'); btn.classList.add(correct ? 'correct' : 'wrong');
+        await sleep(1100);
+        closeModal();
+        await sleep(150);
+        resolve({ correct, ms });
+      }));
+      $('#btnPause', box).addEventListener('click', pause);
+    }
+
+    function pause(){
+      acc += performance.now() - tStart;   // el tiempo en pausa no cuenta
+      openModal(`<div class="center win">
+        <div class="medal-big">⏸</div>
+        <h2>Carrera en pausa</h2>
+        <p class="muted">Turno de <b>${esc(team.name)}</b> · Pregunta ${idx + 1} de ${total}</p>
+        <button class="btn primary big" id="btnResume">▶ Seguir</button></div>`, team.color);
+      $('#btnResume').addEventListener('click', show, { once: true });
+    }
+
+    show();
+  });
+}
+
+function announce(t){
+  const p = t.place, inPodium = p <= race.podium;
+  const left = race.podium - race.placesGiven;
+  let body;
+  if (!inPodium) {
+    body = `<p>Llegó a la meta, pero el podio ya estaba completo.</p>`;
+  } else if (left > 0) {
+    const list = []; for (let k = race.placesGiven + 1; k <= race.podium; k++) list.push(ord(k));
+    body = `<p>¡Pero la carrera sigue! Todavía falta${left > 1 ? 'n' : ''} por definir: <b>${list.join(' y ')} lugar</b>.</p>`;
+  } else {
+    body = `<p>¡El podio está completo!</p>`;
+  }
+  return new Promise(resolve => {
+    openModal(`<div class="center win">
+      <div class="medal-big">${inPodium ? MEDALS[p - 1] : '🏁'}</div>
+      <h2 style="color:${t.color === '#f4a300' ? '#9a6a00' : t.color}">${esc(t.name)}</h2>
+      <h2>${inPodium ? `¡Gana el ${ord(p)} lugar!` : `Llegó en la posición ${p}`}</h2>
+      ${body}
+      <button class="btn primary big" id="btnCont">Continuar</button></div>`, t.color);
+    $('#btnCont').addEventListener('click', () => { closeModal(); sleep(150).then(resolve); }, { once: true });
+  });
+}
+
+/* ================= PISTA ================= */
+const HORSE = 'M22 90 C20 70 24 50 34 36 L36 12 L46 24 C60 24 76 38 88 56 L90 64 C88 70 80 72 74 68 L66 66 C60 70 62 78 70 90 Z';
+const MANE  = 'M34 36 C24 50 20 70 22 90';
+
+function horseMarkup(color){
+  return `
+    <path d="${HORSE}" fill="#f3ead7" stroke="#1f1f1f" stroke-width="3" stroke-linejoin="round"/>
+    <g clip-path="url(#horseClip)">
+      <rect x="0" y="68" width="100" height="32" fill="${color}"/>
+      <path d="M0 68 H100" stroke="#1f1f1f" stroke-width="2.5"/>
+    </g>
+    <path d="${HORSE}" fill="none" stroke="#1f1f1f" stroke-width="3" stroke-linejoin="round"/>
+    <path d="${MANE}" fill="none" stroke="#3b2a1a" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="62" cy="46" r="3.6" fill="#1f1f1f"/>
+    <circle cx="84" cy="60" r="1.8" fill="#1f1f1f"/>`;
+}
+
+function buildTrack(){
+  const svg = $('#track'), n = race.teams.length;
+  const W = 1100, H = 700, outer = 26, sp = Math.min(46, Math.floor(260 / n)), sx = W / 2;
+  const stadium = d => {
+    const r = (H - 2*d) / 2, yb = H - d, yt = d, xr = W - d - r, xl = d + r;
+    return `M ${sx} ${yb} L ${xr} ${yb} A ${r} ${r} 0 0 0 ${xr} ${yt} L ${xl} ${yt} A ${r} ${r} 0 0 0 ${xl} ${yb} L ${sx} ${yb} Z`;
+  };
+  race.size = Math.max(46, Math.min(70, sp * 1.5));
+  let h = `<defs>
+    <clipPath id="horseClip"><path d="${HORSE}"/></clipPath>
+    <pattern id="checker" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect width="10" height="10" fill="#fff"/><rect width="5" height="5" fill="#111"/><rect x="5" y="5" width="5" height="5" fill="#111"/>
+    </pattern></defs>
+    <rect width="${W}" height="${H}" rx="30" fill="#2d6a4f"/>
+    <path d="${stadium(outer)}" fill="#c1623f" stroke="#fff" stroke-width="5"/>`;
+  for (let i = 1; i < n; i++) h += `<path d="${stadium(outer + i * sp)}" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="2"/>`;
+  h += `<path d="${stadium(outer + n * sp)}" fill="#3f9b5f" stroke="#fff" stroke-width="5"/>
+    <text class="infield-t" id="infieldT" x="${W/2}" y="${H/2 - 6}">🏁 Carrera</text>
+    <text class="infield-s" id="infieldS" x="${W/2}" y="${H/2 + 40}"></text>
+    <rect x="${sx - 6}" y="${H - outer - n * sp}" width="12" height="${n * sp}" fill="url(#checker)"/>
+    <text x="${sx}" y="${H - outer - n * sp - 8}" text-anchor="middle" font-size="20" font-weight="800" fill="#fff">META / SALIDA</text>`;
+  race.teams.forEach((t, i) => {
+    const d = outer + sp * (i + .5);
+    h += `<path id="lane${i}" d="${stadium(d)}" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1.5" stroke-dasharray="4 9"/>`;
+  });
+  for (let i = n - 1; i >= 0; i--) {
+    const t = race.teams[i];
+    h += `<g id="horse${i}"><g class="flip">${horseMarkup(t.color)}</g>
+      <g transform="translate(0,${-race.size - 8})"><circle r="12" fill="${t.color}" stroke="#fff" stroke-width="3"/>
+      <text y="5" text-anchor="middle" font-size="15" font-weight="800" fill="${textOn(t.color)}">${i + 1}</text></g></g>`;
+  }
+  svg.innerHTML = h;
+  race.teams.forEach((t, i) => {
+    t.el = $('#horse' + i, svg); t.flip = $('.flip', t.el); t.lane = $('#lane' + i, svg);
+    t.len = t.lane.getTotalLength(); t.face = 1; placeHorse(t, 0, 0);
+  });
+}
+
+function placeHorse(t, p, hop){
+  const L = t.len, pos = Math.max(0, Math.min(1, p)) * L;
+  const a = t.lane.getPointAtLength(Math.max(0, pos - 4));
+  const b = t.lane.getPointAtLength(Math.min(L, pos + 4));
+  const c = t.lane.getPointAtLength(pos);
+  if (Math.abs(b.x - a.x) > 0.5) t.face = b.x > a.x ? 1 : -1;
+  const k = race.size / 100;
+  t.el.setAttribute('transform', `translate(${c.x.toFixed(1)},${(c.y - hop).toFixed(1)})`);
+  t.flip.setAttribute('transform', `scale(${(t.face * k).toFixed(3)},${k.toFixed(3)}) translate(-55,-90)`);
+}
+
+function moveTo(t, to){
+  return new Promise(res => {
+    const from = t.shown, d = 700 + Math.abs(to - from) * 2500, t0 = performance.now();
+    const jumps = Math.max(2, Math.round(d / 180));
+    (function frame(now){
+      const u = Math.min(1, (now - t0) / d);
+      const e = u < .5 ? 2*u*u : 1 - Math.pow(-2*u + 2, 2) / 2;
+      t.shown = from + (to - from) * e;
+      placeHorse(t, t.shown, u < 1 ? Math.abs(Math.sin(u * Math.PI * jumps)) * 9 : 0);
+      if (u < 1) requestAnimationFrame(frame); else { t.shown = to; res(); }
+    })(performance.now());
+  });
+}
+
+/* ================= Paneles laterales ================= */
+function addLog(text, cls){
+  const li = document.createElement('li'); li.className = cls || ''; li.textContent = text;
+  $('#log').prepend(li);
+}
+function renderBoard(){
+  $('#board').innerHTML = race.teams.map(t => {
+    const pct = Math.min(100, Math.round(t.correct / race.goal * 100));
+    const tag = t.place ? (t.place <= race.podium ? `${MEDALS[t.place - 1]} ${ord(t.place)}` : `🏁 ${t.place}.º`) : '';
+    return `<div class="team">
+      <div class="top"><span class="dot" style="background:${t.color}"></span><b>${esc(t.name)}</b><span class="tag">${tag}</span></div>
+      <div class="bar"><i style="width:${pct}%;background:${t.color}"></i></div>
+      <small class="muted">${t.correct} / ${race.goal} aciertos · ${pct}% · ${t.wrong} fallo${t.wrong === 1 ? '' : 's'}</small>
+    </div>`;
+  }).join('');
+}
+function renderPodium(){
+  let h = '';
+  for (let k = 1; k <= race.podium; k++) {
+    const t = race.teams.find(x => x.place === k);
+    h += t
+      ? `<li class="done"><span class="medal">${MEDALS[k - 1]}</span><span class="dot" style="background:${t.color}"></span><span><b>${esc(t.name)}</b><br><small class="muted">${ord(k)} lugar${t.byPoints ? ' (por aciertos)' : ''}</small></span></li>`
+      : `<li><span class="medal" style="opacity:.35">${MEDALS[k - 1]}</span><span class="muted">${ord(k)} lugar: por definir…</span></li>`;
+  }
+  $('#podium').innerHTML = h;
+}
+function setInfield(a, b){ const t = $('#infieldT'), s = $('#infieldS'); if (t) t.textContent = a; if (s) s.textContent = b || ''; }
+
+/* ================= CARRERA ================= */
+function initRace(){
+  closeModal(); runId++;
+  const n = cfg.groups.length;
+  race = {
+    teams: cfg.groups.map((g, i) => ({
+      id: i, name: g.name.trim() || ('Equipo ' + (i + 1)), color: g.color,
+      correct: 0, wrong: 0, shown: 0, finished: false, place: null, time: 0, byPoints: false
+    })),
+    order: shuffle(questions.slice()).slice(0, cfg.nQ),
+    goal: cfg.goal, nQ: cfg.nQ, qi: 0, placesGiven: 0, podium: Math.min(3, n), started: false, over: false
+  };
+  $('#raceEmpty').classList.add('hidden'); $('#raceWrap').classList.remove('hidden');
+  buildTrack(); renderBoard(); renderPodium();
+  $('#log').innerHTML = '';
+  addLog(`Carrera lista: ${n} grupos, ${race.nQ} preguntas, meta en ${race.goal} aciertos.`);
+  setInfield('🏁 Carrera', `Meta: ${race.goal} aciertos`);
+  $('#btnRun').disabled = false; $('#btnRun').textContent = '▶ Iniciar carrera';
+  $('#raceStatus').textContent = 'Todo listo. ¡Pulsa “Iniciar carrera”!';
+}
+
+async function runRace(){
+  if (!race || race.started) return;
+  const my = ++runId;
+  race.started = true;
+  $('#btnRun').disabled = true; $('#btnRun').textContent = 'Carrera en curso…';
+  addLog('¡Comienza la carrera!');
+  for (race.qi = 0; race.qi < race.order.length; race.qi++) {
+    const q = race.order[race.qi];
+    setInfield(`Pregunta ${race.qi + 1} / ${race.nQ}`, `Meta: ${race.goal} aciertos`);
+    $('#raceStatus').textContent = `Pregunta ${race.qi + 1} de ${race.nQ}`;
+    for (const t of race.teams) {
+      if (t.finished) continue;
+      const res = await askQuestion(q, t, race.qi, race.nQ);
+      if (my !== runId) return;
+      t.time += res.ms;
+      if (res.correct) {
+        t.correct++;
+        addLog(`✔ ${t.name} acertó (${t.correct}/${race.goal})`, 'ok');
+        renderBoard();
+        await moveTo(t, Math.min(1, t.correct / race.goal));
+      } else {
+        t.wrong++;
+        addLog(`✘ ${t.name} falló`, 'bad');
+        renderBoard();
+        await sleep(300);
+      }
+      if (my !== runId) return;
+      if (t.correct >= race.goal) {
+        t.finished = true; t.place = ++race.placesGiven;
+        if (t.place <= race.podium) {
+          const left = race.podium - race.placesGiven;
+          const rest = []; for (let k = race.placesGiven + 1; k <= race.podium; k++) rest.push(ord(k));
+          addLog(`🏆 ${t.name} ganó el ${ord(t.place)} lugar` + (left > 0 ? ` — sigue la carrera por el ${rest.join(' y ')}` : ' — ¡podio completo!'), 'win');
+        } else addLog(`🏁 ${t.name} llegó a la meta (posición ${t.place}, fuera del podio)`, 'win');
+        renderBoard(); renderPodium();
+        await announce(t);
+        if (my !== runId) return;
+      }
+    }
+    if (race.placesGiven >= race.podium || race.teams.every(t => t.finished)) break;
+  }
+  if (my !== runId) return;
+  await finishRace(race.placesGiven >= race.podium ? 'podium' : 'questions');
+}
+
+async function finishRace(reason){
+  race.over = true;
+  const rest = race.teams.filter(t => !t.finished).sort((a, b) => b.correct - a.correct || a.time - b.time);
+  rest.forEach(t => { t.place = ++race.placesGiven; t.byPoints = true; });
+  renderBoard(); renderPodium();
+  $('#btnRun').textContent = 'Carrera terminada';
+  $('#raceStatus').textContent = 'La carrera terminó.';
+  setInfield('🏆 ¡Final!', '');
+  addLog(reason === 'podium' ? 'El podio quedó completo.' : 'Se acabaron las preguntas: posiciones restantes por aciertos (y rapidez en caso de empate).', 'win');
+
+  const sorted = race.teams.slice().sort((a, b) => a.place - b.place);
+  const top = sorted.filter(t => t.place <= race.podium);
+  const heights = { 1: 190, 2: 150, 3: 120 };
+  const visual = [...top].sort((a, b) => ({1: 1, 2: 0, 3: 2}[a.place]) - ({1: 1, 2: 0, 3: 2}[b.place]));
+  const others = sorted.filter(t => t.place > race.podium);
+  openModal(`<div class="center win">
+    <h2>🏆 ¡Resultados finales!</h2>
+    <p style="margin:0 0 4px" class="muted">${reason === 'podium' ? 'El podio quedó completo.' : 'Se acabaron las preguntas; las posiciones pendientes se definieron por aciertos.'}</p>
+    <div class="podium-vis">
+      ${visual.map(t => `<div class="step" style="height:${heights[t.place] || 110}px;background:${t.color};color:${textOn(t.color)}">
+        <span class="m">${MEDALS[t.place - 1]}</span><span class="nm">${esc(t.name)}</span><small>${t.correct} aciertos</small></div>`).join('')}
+    </div>
+    ${others.length ? `<div class="others">Resto: ${others.map(t => `${t.place}.º ${esc(t.name)} (${t.correct})`).join(' · ')}</div>` : ''}
+    <div class="row" style="justify-content:center">
+      <button class="btn primary" id="fAgain">↺ Jugar de nuevo</button>
+      <button class="btn" id="fView">Ver la pista</button>
+      <button class="btn" id="fCfg">Cambiar configuración</button>
+    </div></div>`);
+  $('#fAgain').addEventListener('click', () => initRace());
+  $('#fView').addEventListener('click', closeModal);
+  $('#fCfg').addEventListener('click', () => { closeModal(); showTab('setup'); });
+}
+
+$('#btnRun').addEventListener('click', runRace);
+$('#btnReset').addEventListener('click', () => {
+  if (!race) return;
+  if (!race.started || race.over || confirm('¿Reiniciar la carrera? Se perderá el avance actual.')) initRace();
+});
+$('#btnFull').addEventListener('click', () => {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.(); else document.exitFullscreen?.();
+});
+
+/* ================= Inicio ================= */
+renderSetup();
+renderAdmin();
+})();
+</script>
+</body>
+</html>
